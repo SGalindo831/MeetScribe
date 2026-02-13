@@ -11,8 +11,8 @@ This application requires FFmpeg to be installed on your system for audio proces
 - Or download from [ffmpeg.org](https://ffmpeg.org/download.html) and add to PATH
 
 **macOS:**
-```bash
-brew install ffmpeg
+- ```bash
+- brew install ffmpeg
 
 ### FOR PYTHON DEPENDENCIES
 pip install -r requirements.txt
