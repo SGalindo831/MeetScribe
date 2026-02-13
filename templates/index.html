@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meeting Audio Summarizer</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 2.5em;
+        }
+        
+        .options-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .option-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .option-card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+            margin-top: 15px;
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        .button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .button.stop {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+        
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+        
+        .file-input-label {
+            display: block;
+            padding: 15px;
+            background: #f7f7f7;
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .file-input-label:hover {
+            background: #f0f0f0;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background: #f7f7f7;
+            display: none;
+        }
+        
+        .status.active {
+            display: block;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        
+        .status-indicator.recording {
+            background: #f5576c;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .status-indicator.processing {
+            background: #ffa726;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .status-indicator.completed {
+            background: #66bb6a;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .results {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: none;
+        }
+        
+        .results.active {
+            display: block;
+        }
+        
+        .results h3 {
+            color: #667eea;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .results ul {
+            margin-left: 20px;
+        }
+        
+        .results li {
+            margin: 8px 0;
+            line-height: 1.6;
+        }
+        
+        .transcript-box {
+            background: #f7f7f7;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎙️ Meeting Audio Summarizer</h1>
+        
+        <div class="options-container">
+            <div class="option-card">
+                <h2>📡 Live Recording</h2>
+                <p>Record your meeting in real-time and get an instant summary when finished.</p>
+                
+                <button id="startRecording" class="button">Start Recording</button>
+                <button id="stopRecording" class="button stop" style="display: none;">Stop Recording</button>
+                
+                <div id="liveStatus" class="status">
+                    <span class="status-indicator"></span>
+                    <span class="status-text">Ready</span>
+                </div>
+            </div>
+            
+            <div class="option-card">
+                <h2>📁 Upload Recording</h2>
+                <p>Upload a pre-recorded meeting audio file for transcription and summarization.</p>
+                
+                <div class="file-input-wrapper">
+                    <input type="file" id="audioFile" accept="audio/*,video/*" />
+                    <label for="audioFile" class="file-input-label">
+                        <span id="fileName">Choose Audio File</span>
+                    </label>
+                </div>
+                
+                <button id="uploadButton" class="button" disabled>Upload & Process</button>
+                
+                <div id="uploadStatus" class="status">
+                    <span class="status-indicator"></span>
+                    <span class="status-text">No file selected</span>
+                </div>
+            </div>
+        </div>
+        
+        <div id="results" class="results">
+            <h2>📋 Meeting Summary</h2>
+            
+            <h3>Overview</h3>
+            <p id="overview"></p>
+            
+            <h3>Key Points</h3>
+            <ul id="keyPoints"></ul>
+            
+            <h3>Action Items</h3>
+            <ul id="actionItems"></ul>
+            
+            <h3>Decisions Made</h3>
+            <ul id="decisions"></ul>
+            
+            <h3>Full Transcript</h3>
+            <div id="transcript" class="transcript-box"></div>
+        </div>
+    </div>
+    
+    <script>
+        const socket = io();
+        let mediaRecorder;
+        let audioChunks = [];
+        let currentSessionId = null;
+        let selectedFile = null;
+        
+        socket.on('connect', () => {
+            console.log('Connected to server');
+        });
+        
+        socket.on('connection_response', (data) => {
+            console.log('Connection confirmed:', data);
+        });
+        
+        document.getElementById('startRecording').addEventListener('click', async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+                
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    
+                    // Convert blob to base64 and send to server
+                    const reader = new FileReader();
+                    reader.readAsDataURL(audioBlob);
+                    reader.onloadend = () => {
+                        const base64Audio = reader.result;
+                        socket.emit('audio_data', {
+                            session_id: currentSessionId,
+                            audio_blob: base64Audio
+                        });
+                        
+                        // After sending audio, trigger stop_recording
+                        setTimeout(() => {
+                            socket.emit('stop_recording', { session_id: currentSessionId });
+                        }, 500);
+                    };
+                };
+                
+                mediaRecorder.start();
+                socket.emit('start_recording', {});
+                
+                document.getElementById('startRecording').style.display = 'none';
+                document.getElementById('stopRecording').style.display = 'block';
+                
+                showStatus('liveStatus', 'recording', 'Recording in progress...');
+                
+            } catch (err) {
+                console.error('Error accessing microphone:', err);
+                alert('Could not access microphone. Please check permissions.');
+            }
+        });
+        
+        document.getElementById('stopRecording').addEventListener('click', () => {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                
+                document.getElementById('startRecording').style.display = 'block';
+                document.getElementById('stopRecording').style.display = 'none';
+                
+                showStatus('liveStatus', 'processing', 'Saving and processing recording...');
+            }
+        });
+        
+        socket.on('recording_started', (data) => {
+            currentSessionId = data.session_id;
+            console.log('Recording session started:', currentSessionId);
+        });
+        
+        socket.on('audio_saved', (data) => {
+            console.log('Audio saved:', data);
+            showStatus('liveStatus', 'processing', 'Processing recording...');
+        });
+        
+        socket.on('recording_stopped', (data) => {
+            console.log('Recording stopped, processing...');
+        });
+        
+        socket.on('processing_complete', (data) => {
+            console.log('Processing complete:', data);
+            displayResults(data.summary, data.transcript);
+            showStatus('liveStatus', 'completed', 'Completed!');
+        });
+        
+        document.getElementById('audioFile').addEventListener('change', (e) => {
+            selectedFile = e.target.files[0];
+            if (selectedFile) {
+                document.getElementById('fileName').textContent = selectedFile.name;
+                document.getElementById('uploadButton').disabled = false;
+                showStatus('uploadStatus', '', `Selected: ${selectedFile.name}`);
+            }
+        });
+        
+        document.getElementById('uploadButton').addEventListener('click', async () => {
+            if (!selectedFile) return;
+            
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            
+            showStatus('uploadStatus', 'processing', 'Uploading...');
+            document.getElementById('uploadButton').disabled = true;
+            
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showStatus('uploadStatus', 'processing', 'Processing...');
+                    pollStatus(result.task_id);
+                } else {
+                    showStatus('uploadStatus', '', 'Error: ' + result.error);
+                    document.getElementById('uploadButton').disabled = false;
+                }
+            } catch (err) {
+                console.error('Upload error:', err);
+                showStatus('uploadStatus', '', 'Upload failed');
+                document.getElementById('uploadButton').disabled = false;
+            }
+        });
+        
+        async function pollStatus(taskId) {
+            const interval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/status/${taskId}`);
+                    const status = await response.json();
+                    
+                    if (status.status === 'completed') {
+                        clearInterval(interval);
+                        showStatus('uploadStatus', 'completed', 'Completed!');
+                        displayResults(status.summary, status.transcript);
+                        document.getElementById('uploadButton').disabled = false;
+                    } else if (status.status === 'error') {
+                        clearInterval(interval);
+                        showStatus('uploadStatus', '', 'Error: ' + status.error);
+                        document.getElementById('uploadButton').disabled = false;
+                    } else {
+                        showStatus('uploadStatus', 'processing', `Status: ${status.status}...`);
+                    }
+                } catch (err) {
+                    console.error('Status check error:', err);
+                    clearInterval(interval);
+                }
+            }, 2000);
+        }
+        
+        function showStatus(elementId, statusClass, text) {
+            const statusEl = document.getElementById(elementId);
+            const indicator = statusEl.querySelector('.status-indicator');
+            const textEl = statusEl.querySelector('.status-text');
+            
+            statusEl.classList.add('active');
+            indicator.className = 'status-indicator ' + statusClass;
+            textEl.textContent = text;
+        }
+        
+        function displayResults(summary, transcript) {
+            document.getElementById('overview').textContent = summary.overview;
+            
+            const keyPointsList = document.getElementById('keyPoints');
+            keyPointsList.innerHTML = '';
+            summary.key_points.forEach(point => {
+                const li = document.createElement('li');
+                li.textContent = point;
+                keyPointsList.appendChild(li);
+            });
+            
+            const actionItemsList = document.getElementById('actionItems');
+            actionItemsList.innerHTML = '';
+            summary.action_items.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item;
+                actionItemsList.appendChild(li);
+            });
+            
+            const decisionsList = document.getElementById('decisions');
+            decisionsList.innerHTML = '';
+            summary.decisions.forEach(decision => {
+                const li = document.createElement('li');
+                li.textContent = decision;
+                decisionsList.appendChild(li);
+            });
+            
+            document.getElementById('transcript').textContent = transcript;
+            
+            document.getElementById('results').classList.add('active');
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

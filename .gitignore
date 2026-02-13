@@ -1,0 +1,56 @@
+# Python
+*.py[cod]
+*$py.class
+__pycache__/
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+venv/
+env/
+ENV/
+
+# Flask
+instance/
+.webassets-cache
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+meetings.db
+
+# Environment variables
+.env
+.env.local
+
+# Audio files and uploads
+uploads/
+transcriptions/
+summaries/
+temp_recordings/
+*.mp3
+*.wav
+*.webm
+*.m4a
+*.ogg
+*.mp4
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Whisper model cache
+*.pt
