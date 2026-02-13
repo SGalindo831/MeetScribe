@@ -407,12 +407,12 @@ IMPORTANT: Return ONLY the raw JSON object. Do not include any markdown formatti
 
 if __name__ == '__main__':
     print("\n" + "="*60)
-    print("🎙️  Meeting Audio Summarizer - LOCAL AI VERSION")
+    print("Meeting Audio Summarizer - LOCAL AI VERSION")
     print("="*60)
-    print("\n🤖 Using local Whisper for transcription")
-    print("🦙 Using Ollama + Llama3 for summarization")
-    print("\n💾 Database: SQLite (meetings.db)")
-    print("🌐 Opening server at: http://localhost:5001")
-    print("\n💡 Upload or record audio to get real AI summaries!")
+    print("\n Using local Whisper for transcription")
+    print(" Using Ollama + Llama3 for summarization")
+    print("\n Database: SQLite (meetings.db)")
+    print(" Opening server at: http://localhost:5001")
+    print("\n Upload or record audio to get real AI summaries!")
     print("="*60 + "\n")
     socketio.run(app, debug=True, host='0.0.0.0', port=5001)

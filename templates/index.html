@@ -1,196 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meeting Audio Summarizer</title>
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        h1 {
-            color: white;
-            text-align: center;
-            margin-bottom: 40px;
-            font-size: 2.5em;
-        }
-        
-        .options-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
-            gap: 30px;
-            margin-bottom: 40px;
-        }
-        
-        .option-card {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-        
-        .option-card h2 {
-            color: #667eea;
-            margin-bottom: 20px;
-            font-size: 1.8em;
-        }
-        
-        .button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            font-size: 1.1em;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            width: 100%;
-            margin-top: 15px;
-        }
-        
-        .button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        }
-        
-        .button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .button.stop {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
-        
-        .file-input-wrapper {
-            position: relative;
-            overflow: hidden;
-            display: inline-block;
-            width: 100%;
-        }
-        
-        .file-input-wrapper input[type=file] {
-            position: absolute;
-            left: -9999px;
-        }
-        
-        .file-input-label {
-            display: block;
-            padding: 15px;
-            background: #f7f7f7;
-            border: 2px dashed #667eea;
-            border-radius: 8px;
-            text-align: center;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        
-        .file-input-label:hover {
-            background: #f0f0f0;
-        }
-        
-        .status {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 8px;
-            background: #f7f7f7;
-            display: none;
-        }
-        
-        .status.active {
-            display: block;
-        }
-        
-        .status-indicator {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            margin-right: 10px;
-        }
-        
-        .status-indicator.recording {
-            background: #f5576c;
-            animation: pulse 1.5s infinite;
-        }
-        
-        .status-indicator.processing {
-            background: #ffa726;
-            animation: pulse 1.5s infinite;
-        }
-        
-        .status-indicator.completed {
-            background: #66bb6a;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        
-        .results {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            display: none;
-        }
-        
-        .results.active {
-            display: block;
-        }
-        
-        .results h3 {
-            color: #667eea;
-            margin-top: 20px;
-            margin-bottom: 10px;
-        }
-        
-        .results ul {
-            margin-left: 20px;
-        }
-        
-        .results li {
-            margin: 8px 0;
-            line-height: 1.6;
-        }
-        
-        .transcript-box {
-            background: #f7f7f7;
-            padding: 15px;
-            border-radius: 8px;
-            max-height: 300px;
-            overflow-y: auto;
-            margin-top: 10px;
-            white-space: pre-wrap;
-            line-height: 1.6;
-        }
-    </style>
+    {% include 'partials/head.html' %}
 </head>
 <body>
     <div class="container">
-        <h1>🎙️ Meeting Audio Summarizer</h1>
+        <h1>MeetScribe</h1>
         
         <div class="options-container">
             <div class="option-card">
-                <h2>📡 Live Recording</h2>
+                <h2>Live Recording</h2>
                 <p>Record your meeting in real-time and get an instant summary when finished.</p>
                 
                 <button id="startRecording" class="button">Start Recording</button>
@@ -203,7 +22,7 @@
             </div>
             
             <div class="option-card">
-                <h2>📁 Upload Recording</h2>
+                <h2>Upload Recording</h2>
                 <p>Upload a pre-recorded meeting audio file for transcription and summarization.</p>
                 
                 <div class="file-input-wrapper">
@@ -223,7 +42,7 @@
         </div>
         
         <div id="results" class="results">
-            <h2>📋 Meeting Summary</h2>
+            <h2>Meeting Summary</h2>
             
             <h3>Overview</h3>
             <p id="overview"></p>
